@@ -68,23 +68,50 @@ mutation_strategies.append(NormalizeToKey)
 
 def Inversion(individual: creator.Melody):
     """
-    倒影变异：以第一个音为轴，将音程关系上下翻转
-    变异后自动归一化到调内
+    倒影变异：以第一个音为轴，将音程关系上下翻转（基于音级）
+    
+    在调内音阶上操作，保证结果始终在调内。
+    例如C大调：C-E-G（上2级、上4级）→ C-A-F（下2级、下4级）
     """
     if len(individual.pitch) < 2:
         return individual
     
     key = individual.key
+    scale_pitches = get_scale_pitches(key)
+    
+    if len(scale_pitches) == 0:
+        return individual
+    
     axis = individual.pitch[0]
+    
+    # 找到轴音在调内音阶中的位置
+    if axis in scale_pitches:
+        axis_idx = scale_pitches.index(axis)
+    else:
+        # 如果轴音不在调内，找最近的调内音
+        axis = min(scale_pitches, key=lambda x: abs(x - axis))
+        axis_idx = scale_pitches.index(axis)
+    
     new_pitch = [axis]
     
     for i in range(1, len(individual.pitch)):
-        interval = individual.pitch[i] - axis
-        new_p = axis - interval
-        new_p = max(PITCH_MIN, min(PITCH_MAX, new_p))
-        # 归一化到调内
-        new_p = normalize_pitch_to_key(new_p, key)
-        new_pitch.append(new_p)
+        current = individual.pitch[i]
+        
+        # 找到当前音在调内音阶中的位置
+        if current in scale_pitches:
+            current_idx = scale_pitches.index(current)
+        else:
+            current = min(scale_pitches, key=lambda x: abs(x - current))
+            current_idx = scale_pitches.index(current)
+        
+        # 计算音级间隔（在调内音阶中的距离）
+        interval = current_idx - axis_idx
+        
+        # 倒影：轴音位置 - 间隔
+        new_idx = axis_idx - interval
+        new_idx = max(0, min(len(scale_pitches) - 1, new_idx))
+        
+        new_pitch.append(scale_pitches[new_idx])
     
     individual.pitch = new_pitch
     return individual
