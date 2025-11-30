@@ -9,11 +9,7 @@ creator.create("Melody", Melody, fitness=creator.FitnessMax)
 toolbox = base.Toolbox()
 
 #-------Create Gene------
-def Get_Melody():
-    #Todo
-    pitch=[77]
-    beat=[240]
-    return creator.Melody(pitch, beat)
+from zcs import Get_Melody  # 使用 zcs 模块的初始种群生成
 toolbox.register("individual",Get_Melody)
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
@@ -27,7 +23,7 @@ def evaluate_melody(melody):
 
 #-----Crossover and Mutation_____
 from Crossover import GetChild
-from Mutations import melody_mutation
+from zcs import melody_mutation  # 使用 zcs 模块的变异操作
 
 
 # --- 6. 注册所有操作到工具箱 ---
