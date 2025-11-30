@@ -9,12 +9,13 @@ creator.create("Melody", Melody, fitness=creator.FitnessMax)
 toolbox = base.Toolbox()
 
 #-------Create Gene------
+# 导入zcs模块提供的初始种群生成功能 (by zcs)
+from zcs_melody import generate_melody
+
 def Get_Melody():
-    #Todo
-    key="C"
-    pitch=[77]
-    beat=[240]
-    return creator.Melody(key,pitch, beat)
+    """生成初始个体：随机旋律（音域F3~G5，总时值240）"""
+    key, pitch, beat = generate_melody()
+    return creator.Melody(key, pitch, beat)
 toolbox.register("individual",Get_Melody)
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
