@@ -5,7 +5,7 @@ valid_notes=[]
 
 MELODY_LENGTH=240
 for i in range(1,8):
-    valid_notes+=[str(Notes[j]+str(i)) for j in range(11)]
+    valid_notes+=[str(Notes[j]+str(i)) for j in range(12)]
 valid_notes.append("Pause")
 TransPitches=dict([])
 for i in range(len(valid_notes)):
@@ -26,3 +26,4 @@ class Melody:
             c+=valid_notes[self.pitch[i]]+" "+str(self.beat[i])+"\n"
         c+="}"
         return c
+
