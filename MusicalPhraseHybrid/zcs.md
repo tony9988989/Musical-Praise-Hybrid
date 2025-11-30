@@ -52,18 +52,30 @@ valid_pitches = get_scale_pitches("G")
 ### 2.2 `Mutations.py` - 变异策略（8种）
 
 直接操作 `creator.Melody` 对象，保留 `key` 属性不变。
+**所有涉及音高变化的操作都保证在调性内。**
+
+**辅助函数**：
+- `get_scale_pitches(key)` - 获取调内所有有效音高
+- `normalize_pitch_to_key(pitch, key)` - 将音高归一化到调内
 
 **策略列表**：
-| 函数名 | 音乐术语 | 说明 |
-|--------|----------|------|
-| `Keep` | - | 保持不变（空操作） |
-| `Transpose` | 移调 | 整体上移/下移半音（±5随机） |
-| `Inversion` | 倒影 | 以首音为轴，音程上下翻转 |
-| `Retrograde` | 逆行 | 倒序播放（音高+时值都倒序） |
-| `ChangePitch` | 音高微调 | 随机改变一个音高（±1~3半音） |
-| `ChangeRhythm` | 节奏微调 | 相邻音符转移时值（保持总时值） |
-| `SplitNote` | 音符分裂 | 一个音符分裂成两个（时值平分） |
-| `MergeNotes` | 音符合并 | 合并相邻两个音符（时值相加） |
+| 函数名 | 音乐术语 | 说明 | 调性约束 |
+|--------|----------|------|----------|
+| `Keep` | - | 保持不变 | - |
+| `NormalizeToKey` | 调性归一化 | 调外音吸附到调内音 | ✅ |
+| `Inversion` | 倒影 | 音程翻转后归一化 | ✅ |
+| `Retrograde` | 逆行 | 倒序播放 | 不涉及 |
+| `ChangePitch` | 音高微调 | 调内移动±1~2音级 | ✅ |
+| `ChangeRhythm` | 节奏微调 | 转移时值 | 不涉及 |
+| `SplitNote` | 音符分裂 | 新音符在调内选择 | ✅ |
+| `MergeNotes` | 音符合并 | 删除音符 | 不涉及 |
+
+**调内变异示例（C大调）**：
+```
+ChangePitch: C4 → D4（上移1音级）或 E4（上移2音级）
+SplitNote:   G4分裂 → G4 + A4（调内相邻音）
+Inversion:   倒影后 #F → 归一化为 F 或 G
+```
 
 **入口函数**：
 ```python
@@ -166,10 +178,12 @@ def Transpose(individual: creator.Melody):
 
 ## 五、音乐理论说明
 
-### 移调 (Transposition)
+### 调性归一化 (NormalizeToKey)
+将调外音"吸附"到最近的调内音，保证旋律纯净。
 ```
-原旋律：  C - E - G  (上行大三度 + 小三度)
-上移2音： D - #F - A (保持音程关系)
+C大调音阶：C - D - E - F - G - A - B
+调外音 #C → 吸附到 C 或 D（取最近）
+调外音 #F → 吸附到 F 或 G（取最近）
 ```
 
 ### 倒影 (Inversion)
