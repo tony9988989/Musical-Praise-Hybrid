@@ -11,9 +11,10 @@ toolbox = base.Toolbox()
 #-------Create Gene------
 def Get_Melody():
     #Todo
+    key="C"
     pitch=[77]
     beat=[240]
-    return creator.Melody(pitch, beat)
+    return creator.Melody(key,pitch, beat)
 toolbox.register("individual",Get_Melody)
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
