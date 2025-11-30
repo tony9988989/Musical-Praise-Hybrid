@@ -1,4 +1,4 @@
-from Settings import Melody
+from Settings import Melody, Notes
 import random
 from deap import base, creator, tools, algorithms
 
@@ -7,88 +7,75 @@ from deap import base, creator, tools, algorithms
 # ----------------- 调式音阶函数 -----------------
 KEY_SCALE_MAP = {
     "C": [0,2,4,5,7,9,11],
-    "C#":[1,3,5,6,8,10,0],
+    "#C":[1,3,5,6,8,10,0],
     "D": [2,4,6,7,9,11,1],
-    "D#":[3,5,7,8,10,0,2],
+    "#D":[3,5,7,8,10,0,2],
     "E": [4,6,8,9,11,1,3],
     "F": [5,7,9,10,0,2,4],
-    "F#":[6,8,10,11,1,3,5],
+    "#F":[6,8,10,11,1,3,5],
     "G": [7,9,11,0,2,4,6],
-    "G#":[8,10,0,1,3,5,7],
+    "#G":[8,10,0,1,3,5,7],
     "A": [9,11,1,2,4,6,8],
-    "A#":[10,0,2,3,5,7,9],
+    "#A":[10,0,2,3,5,7,9],
     "B": [11,1,3,4,6,8,10]
 }
 
-def normalize_to_key(pitch_list, key):
-    """ 将 pitch 列表归一化到指定 key """
-    key_scale = KEY_SCALE_MAP[key]
-    normalized = []
+# ----------------- 平移到指定调式 -----------------
+def shift_pitch_to_key(pitch_list, from_key, to_key):
+    shift = (Notes.index(to_key) - Notes.index(from_key)) % 12
+    shifted = []
     for p in pitch_list:
-        note = p % 12
-        closest = min(key_scale, key=lambda x: abs(x - note))
         octave = p // 12
-        normalized.append(closest + 12 * octave)
-    return normalized
+        note = p % 12
+        new_note = note + shift
+        shifted.append(octave*12 + new_note)
+    return shifted
 
-# ----------------- 交叉策略 -----------------
-def one_point_crossover(p1, p2):
-    length = len(p1.pitch)
-    if length <= 1:
-        return p1.pitch[:], p1.beat[:], p2.pitch[:], p2.beat[:]
-    k = random.randint(1, length-1)
-    return (p1.pitch[:k]+p2.pitch[k:], p1.beat[:k]+p2.beat[k:],
-            p2.pitch[:k]+p1.pitch[k:], p2.beat[:k]+p1.beat[k:])
-
-def two_point_crossover(p1, p2):
-    length = len(p1.pitch)
-    if length <= 2:
-        return one_point_crossover(p1, p2)
-    k1,k2 = sorted(random.sample(range(1,length),2))
-    return (p1.pitch[:k1]+p2.pitch[k1:k2]+p1.pitch[k2:], p1.beat[:k1]+p2.beat[k1:k2]+p1.beat[k2:],
-            p2.pitch[:k1]+p1.pitch[k1:k2]+p2.pitch[k2:], p2.beat[:k1]+p1.beat[k1:k2]+p2.beat[k2:])
-
-def uniform_crossover(p1, p2):
-    c1_pitch,c2_pitch=[],[]
-    c1_beat,c2_beat=[],[]
-    for i in range(len(p1.pitch)):
-        if random.random()<0.5:
-            c1_pitch.append(p1.pitch[i]); c1_beat.append(p1.beat[i])
-            c2_pitch.append(p2.pitch[i]); c2_beat.append(p2.beat[i])
-        else:
-            c1_pitch.append(p2.pitch[i]); c1_beat.append(p2.beat[i])
-            c2_pitch.append(p1.pitch[i]); c2_beat.append(p1.beat[i])
+# ----------------- 单点 crossover-----------------
+def one_point_crossover(parent1_pitch, parent1_beat, parent2_pitch, parent2_beat):
+    cum1 = [0]
+    for b in parent1_beat:
+        cum1.append(cum1[-1]+b)
+    cum2 = [0]
+    for b in parent2_beat:
+        cum2.append(cum2[-1]+b)
+    length = len(parent1_pitch)
+    legal_points = []
+    for k in range(1, length):
+        beat_sum1 = cum1[k] + (cum2[-1]-cum2[k])
+        beat_sum2 = cum2[k] + (cum1[-1]-cum1[k])
+        if 236 <= beat_sum1 <= 240 and 236 <= beat_sum2 <= 240:
+            legal_points.append(k)
+    if not legal_points:
+        return parent1_pitch, parent1_beat, parent2_pitch, parent2_beat
+    else:
+        k = random.choice(legal_points)
+    c1_pitch = parent1_pitch[:k] + parent2_pitch[k:]
+    c1_beat  = parent1_beat[:k] + parent2_beat[k:]
+    c2_pitch = parent2_pitch[:k] + parent1_pitch[k:]
+    c2_beat  = parent2_beat[:k] + parent1_beat[k:]
+    c1_beat[-1] += 240 - sum(c1_beat)
+    c2_beat[-1] += 240 - sum(c2_beat)
     return c1_pitch, c1_beat, c2_pitch, c2_beat
 
-# ----------------- 修正 beat -----------------
-def normalize_beat(beat):
-    total = sum(beat)
-    if total == 0:
-        return [240]
-    factor = 240 / total
-    new_beat = [max(1,int(b*factor)) for b in beat]
-    diff = 240 - sum(new_beat)
-    new_beat[-1] += diff
-    return new_beat
-
 # ----------------- 主函数 -----------------
-crossover_strategies = [one_point_crossover, two_point_crossover, uniform_crossover]
-
-def GetChild(parent1:Melody, parent2:Melody):
-    # 1. 随机选择交叉策略
-    c1_pitch,c1_beat,c2_pitch,c2_beat = random.choice(crossover_strategies)(parent1, parent2)
+def GetChild(parent1: Melody, parent2: Melody):
+    # 1. 平移父母到 C 大调
+    p1_pitch_c = shift_pitch_to_key(parent1.pitch, parent1.key, "C")
+    p2_pitch_c = shift_pitch_to_key(parent2.pitch, parent2.key, "C")
     
-    # 2. 动态选择父母调式
-    chosen_key = random.choice([parent1.key, parent2.key])
-    c1_pitch = normalize_to_key(c1_pitch, chosen_key)
-    c2_pitch = normalize_to_key(c2_pitch, chosen_key)
+    # 2. 单点 crossover
+    c1_pitch, c1_beat, c2_pitch, c2_beat = one_point_crossover(
+        p1_pitch_c, parent1.beat, p2_pitch_c, parent2.beat
+    )
     
-    # 3. 修正 beat
-    c1_beat = normalize_beat(c1_beat)
-    c2_beat = normalize_beat(c2_beat)
+    # 3. 平移回父母调式
+    c1_pitch = shift_pitch_to_key(c1_pitch, "C", parent1.key)
+    c2_pitch = shift_pitch_to_key(c2_pitch, "C", parent2.key)
     
     # 4. 创建子代 Melody
-    child1 = creator.Melody(chosen_key, c1_pitch, c1_beat)
-    child2 = creator.Melody(chosen_key, c2_pitch, c2_beat)
-    assert isinstance(child1 , creator.Melody) and isinstance(child2 , creator.Melody),"Invalid Crossover Function"
+    child1 = creator.Melody(parent1.key, c1_pitch, c1_beat)
+    child2 = creator.Melody(parent2.key, c2_pitch, c2_beat)
+    
+    assert isinstance(child1, creator.Melody) and isinstance(child2, creator.Melody), "Invalid Crossover Function"
     return child1, child2
