@@ -36,22 +36,18 @@ def crossover(parent1_pitch, parent1_beat, parent2_pitch, parent2_beat):
     c1_beat=[]
     c2_pitch=[]
     c2_beat=[]
-    if not legal_points:
-        # 如果没有合法点，直接返回父母，不做 crossover
-        return parent1_pitch, parent1_beat, parent2_pitch, parent2_beat
-    else:
-        for p in legal_points:
-            choice=random.randint(0,1)
-            if choice==1:
-                c1_pitch+= parent1_pitch[:p]
-                c1_beat += parent1_beat[:p]
-                c2_pitch += parent2_pitch[:p]
-                c2_beat += parent2_beat[:p]
-            else:
-                c2_pitch += parent1_pitch[:p]
-                c2_beat += parent1_beat[:p]
-                c1_pitch += parent2_pitch[:p]
-                c1_beat += parent2_beat[:p]
+    for p in range(1,len(legal_points)):
+        choice=random.randint(0,1)
+        if choice==1:
+            c1_pitch+= parent1_pitch[legal_points[p-1]:legal_points[p]]
+            c1_beat += parent1_beat[legal_points[p-1]:legal_points[p]]
+            c2_pitch += parent2_pitch[legal_points[p-1]:legal_points[p]]
+            c2_beat += parent2_beat[legal_points[p-1]:legal_points[p]]
+        else:
+            c2_pitch += parent1_pitch[legal_points[p-1]:legal_points[p]]
+            c2_beat += parent1_beat[legal_points[p-1]:legal_points[p]]
+            c1_pitch += parent2_pitch[legal_points[p-1]:legal_points[p]]
+            c1_beat += parent2_beat[legal_points[p-1]:legal_points[p]]
     return c1_pitch, c1_beat, c2_pitch, c2_beat
 
 
