@@ -2,7 +2,20 @@ from deap import base
 #-------Basic identifications--------
 Notes=["C","#C","D","#D","E","F","#F","G","#G","A","#A","B"]
 valid_notes=[]
-
+KEY_SCALE_MAP = {
+    "C": [0, 2, 4, 5, 7, 9, 11],
+    "C#": [1, 3, 5, 6, 8, 10, 0],
+    "D": [2, 4, 6, 7, 9, 11, 1],
+    "D#": [3, 5, 7, 8, 10, 0, 2],
+    "E": [4, 6, 8, 9, 11, 1, 3],
+    "F": [5, 7, 9, 10, 0, 2, 4],
+    "F#": [6, 8, 10, 11, 1, 3, 5],
+    "G": [7, 9, 11, 0, 2, 4, 6],
+    "G#": [8, 10, 0, 1, 3, 5, 7],
+    "A": [9, 11, 1, 2, 4, 6, 8],
+    "A#": [10, 0, 2, 3, 5, 7, 9],
+    "B": [11, 1, 3, 4, 6, 8, 10]
+}
 MELODY_LENGTH=240
 for i in range(1,8):
     valid_notes+=[str(Notes[j]+str(i)) for j in range(12)]
@@ -26,4 +39,5 @@ class Melody:
             c+=valid_notes[self.pitch[i]]+" "+str(self.beat[i])+"\n"
         c+="}"
         return c
+
 
