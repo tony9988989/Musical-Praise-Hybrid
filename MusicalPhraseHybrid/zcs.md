@@ -2,17 +2,14 @@
 
 ## 一、模块结构
 
-本次实现采用**解耦设计**，所有功能独立存放在 `zcs_*.py` 模块中，通过接口集成到主程序。
-
 ```
 MusicalPhraseHybrid/
 ├── demo.py              # 主程序（由zcs修改，添加配置文件支持）
-├── Mutations.py         # 变异操作入口（由zcs添加8种策略）
+├── Mutations.py         # 变异操作（由zcs实现8种策略）
 ├── Settings.py          # 基础设置（组长维护，KEY_SCALE_MAP由zcs统一为#C格式）
 ├── Crossover.py         # 交叉操作（组长维护）
 ├── melodies.txt         # 【zcs配置】用户旋律配置文件
 ├── zcs_melody.py        # 【zcs模块】初始种群生成 + 调性约束
-├── zcs_mutations.py     # 【zcs模块】变异策略实现（8种）
 ├── zcs_config.py        # 【zcs模块】配置文件读取 + 自定义旋律输入
 └── zcs.md               # 【zcs文档】本说明文件
 ```
@@ -52,33 +49,28 @@ valid_pitches = get_scale_pitches("G")
 
 ---
 
-### 2.2 `zcs_mutations.py` - 变异策略（8种）
+### 2.2 `Mutations.py` - 变异策略（8种）
 
-提供8种变异策略的**纯函数**实现，不依赖DEAP框架。
-
-**接口**：
-```python
-from zcs_mutations import apply_mutation, MUTATION_STRATEGIES
-
-# 随机应用一种变异
-new_pitch, new_beat = apply_mutation(pitch, beat)
-
-# 指定应用某种变异
-from zcs_mutations import transpose
-new_pitch, new_beat = transpose(pitch, beat, semitones=3)
-```
+直接操作 `creator.Melody` 对象，保留 `key` 属性不变。
 
 **策略列表**：
 | 函数名 | 音乐术语 | 说明 |
 |--------|----------|------|
-| `keep` | - | 保持不变（空操作） |
-| `transpose` | 移调 | 整体上移/下移半音（默认±5随机） |
-| `inversion` | 倒影 | 以首音为轴，音程上下翻转 |
-| `retrograde` | 逆行 | 倒序播放（音高+时值都倒序） |
-| `change_pitch` | 音高微调 | 随机改变一个音高（±1~3半音） |
-| `change_rhythm` | 节奏微调 | 相邻音符转移时值（保持总时值） |
-| `split_note` | 音符分裂 | 一个音符分裂成两个（时值平分） |
-| `merge_notes` | 音符合并 | 合并相邻两个音符（时值相加） |
+| `Keep` | - | 保持不变（空操作） |
+| `Transpose` | 移调 | 整体上移/下移半音（±5随机） |
+| `Inversion` | 倒影 | 以首音为轴，音程上下翻转 |
+| `Retrograde` | 逆行 | 倒序播放（音高+时值都倒序） |
+| `ChangePitch` | 音高微调 | 随机改变一个音高（±1~3半音） |
+| `ChangeRhythm` | 节奏微调 | 相邻音符转移时值（保持总时值） |
+| `SplitNote` | 音符分裂 | 一个音符分裂成两个（时值平分） |
+| `MergeNotes` | 音符合并 | 合并相邻两个音符（时值相加） |
+
+**入口函数**：
+```python
+def melody_mutation(individual: creator.Melody, indpb=0.1):
+    # 随机选择一种策略，原地修改individual
+    # 返回 (individual,) 符合DEAP要求
+```
 
 ---
 
@@ -111,9 +103,6 @@ E4 24
 ...
 ---
 # 多段旋律用 --- 分隔
-G4 24
-A4 24
-...
 ```
 
 **输入格式说明**：
@@ -143,36 +132,24 @@ CONFIG_FILE_PATH = "melodies.txt"
 if USE_CONFIG_FILE:
     config, population = create_population_from_config(
         CONFIG_FILE_PATH, 
-        Get_Melody_Creator
+        Get_Melody_Creator  # 返回 creator.Melody 对象
     )
-else:
-    population = toolbox.population(n=200)
 ```
 
-### 3.2 Mutations.py 中的集成
+### 3.2 Mutations.py 变异机制
 
 ```python
-# 导入zcs模块提供的变异操作
-from zcs_mutations import transpose, inversion, ...
-
-def Transpose(individual):
-    """将纯函数包装为DEAP兼容格式"""
-    new_pitch, new_beat = transpose(individual.pitch, individual.beat)
-    individual.pitch = new_pitch
-    individual.beat = new_beat
-    return individual
+def Transpose(individual: creator.Melody):
+    """原地修改individual，保留key属性"""
+    # ... 修改 individual.pitch ...
+    return individual  # 返回同一个对象
 ```
 
 ---
 
 ## 四、设计原则
 
-### 4.1 解耦设计
-- **zcs模块**：纯逻辑实现，不依赖DEAP或主程序结构
-- **主程序接口**：`Mutations.py` 和 `demo.py` 负责包装和调用
-- **好处**：组长修改主程序结构时，只需调整接口层
-
-### 4.2 复用组长代码
+### 4.1 复用组长代码
 | 复用项 | 来源 | 说明 |
 |--------|------|------|
 | `KEY_SCALE_MAP` | Settings.py | 12个大调音阶定义 |
@@ -180,38 +157,34 @@ def Transpose(individual):
 | `Notes` | Settings.py | 音名列表 |
 | `TransPitches` | Settings.py | 音名→索引映射 |
 | `Melody` 类 | Settings.py | 旋律数据结构 |
+| `creator.Melody` | DEAP | 带fitness的Melody |
 
-### 4.3 兼容性设计
-- 所有zcs模块在无法导入Settings时，使用本地备份定义
-- 支持独立测试，无需依赖主程序环境
+### 4.2 变异保留key属性
+所有变异操作都是**原地修改** `individual.pitch` 和 `individual.beat`，不重新创建对象，因此 `key` 属性自动保留。
 
 ---
 
 ## 五、音乐理论说明
 
 ### 移调 (Transposition)
-将旋律整体上移或下移若干半音，保持音程关系不变。
 ```
 原旋律：  C - E - G  (上行大三度 + 小三度)
-上移2音： D - #F - A (上行大三度 + 小三度)
+上移2音： D - #F - A (保持音程关系)
 ```
 
 ### 倒影 (Inversion)
-以某个音为轴，将所有音程关系上下翻转。
 ```
 原旋律：  C - E - G  (相对于C: +4, +7 半音)
 倒影后：  C - #G - F (相对于C: -4, -7 半音)
 ```
 
 ### 逆行 (Retrograde)
-将旋律按时间倒序播放。
 ```
 原旋律： C - D - E - G
 逆行后： G - E - D - C
 ```
 
 ### 调性约束 (Scale Constraint)
-生成旋律时只使用指定调性的自然音阶：
 ```
 C大调：C - D - E - F - G - A - B（无升降号）
 G大调：G - A - B - C - D - E - #F（一个升号）
@@ -228,43 +201,21 @@ python demo.py
 ```
 
 ### 自定义旋律
-1. 编辑 `melodies.txt` 配置文件
+1. 编辑 `melodies.txt`
 2. 设置调性：`@key=G`
-3. 添加自定义旋律（每行：音名 时值）
+3. 添加自定义旋律
 4. 运行程序
 
-### 切换模式
-在 `demo.py` 中设置：
-```python
-USE_CONFIG_FILE = True   # 从配置文件读取
-USE_CONFIG_FILE = False  # 纯随机生成
-```
-
 ---
 
-## 七、版本适配说明
-
-本模块已适配组长更新后的主程序：
-
-| 项目 | 旧版本 | 新版本（已适配） |
-|------|--------|-----------------|
-| Settings.py Notes | 11音（#E代替E） | 12音（标准） |
-| Melody类 | `(pitch, beat)` | `(key, pitch, beat)` |
-| 音高索引总数 | 0-77 | 0-84 |
-| F3~G5索引 | 26-50 | 29-55 |
-| KEY_SCALE_MAP格式 | C#/D#... | #C/#D...（由zcs统一） |
-
----
-
-## 八、文件清单
+## 七、文件清单
 
 | 文件 | 作者 | 说明 |
 |------|------|------|
 | `zcs_melody.py` | zcs | 初始种群生成 + 12大调调性约束 |
-| `zcs_mutations.py` | zcs | 8种变异策略纯函数实现 |
 | `zcs_config.py` | zcs | 配置文件读取 + 自定义旋律输入 |
 | `melodies.txt` | zcs | 示例配置文件 |
 | `zcs.md` | zcs | 本说明文档 |
-| `Mutations.py` | 组长+zcs | 添加8种策略包装函数 |
+| `Mutations.py` | zcs | 8种变异策略实现 |
 | `demo.py` | 组长+zcs | 添加配置文件支持 |
 | `Settings.py` | 组长+zcs | KEY_SCALE_MAP格式统一为#C |
