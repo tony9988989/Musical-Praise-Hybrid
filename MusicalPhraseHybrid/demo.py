@@ -44,7 +44,7 @@ def evaluate_melody(melody):
 
 #-----Crossover and Mutation_____
 from Crossover import GetChild
-from Mutations import melody_mutation
+from zcs_mutations import melody_mutation
 
 
 # --- 6. 注册所有操作到工具箱 ---
