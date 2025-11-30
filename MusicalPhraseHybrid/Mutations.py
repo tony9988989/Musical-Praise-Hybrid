@@ -4,6 +4,7 @@ from deap import base, creator, tools, algorithms
 
 mutation_strategies=[]
 
+#-------Mutation Strategies (by zcs)------
 # 音域范围：F3 ~ G5（索引 26 ~ 50）
 PITCH_MIN, PITCH_MAX = 26, 50
 # 最小时值单位（八分音符）
@@ -136,6 +137,7 @@ def MergeNotes(individual:creator.Melody):
     
     return individual
 mutation_strategies.append(MergeNotes)
+#-------End of zcs's code------
 
 
 def melody_mutation(individual:creator.Melody, indpb=0.1):

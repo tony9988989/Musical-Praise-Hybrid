@@ -8,7 +8,7 @@ creator.create("FitnessMax", base.Fitness, weights=(1.0,))
 creator.create("Melody", Melody, fitness=creator.FitnessMax)
 toolbox = base.Toolbox()
 
-#-------Create Gene------
+#-------Create Gene (by zcs)------
 PITCH_MIN, PITCH_MAX = 26, 50  # 音域：F3 ~ G5
 BEAT_UNIT = 6                   # 最小时值：八分音符
 VALID_BEATS = [6, 12, 18, 24, 36, 48]
@@ -37,6 +37,7 @@ def Get_Melody():
         remaining -= beat
     
     return creator.Melody(pitch_list, beat_list)
+#-------End of zcs's code------
 toolbox.register("individual",Get_Melody)
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
