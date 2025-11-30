@@ -9,7 +9,34 @@ creator.create("Melody", Melody, fitness=creator.FitnessMax)
 toolbox = base.Toolbox()
 
 #-------Create Gene------
-from zcs import Get_Melody  # 使用 zcs 模块的初始种群生成
+PITCH_MIN, PITCH_MAX = 26, 50  # 音域：F3 ~ G5
+BEAT_UNIT = 6                   # 最小时值：八分音符
+VALID_BEATS = [6, 12, 18, 24, 36, 48]
+MELODY_LENGTH = 240
+
+def Get_Melody():
+    """生成初始个体：随机旋律（音域F3~G5，总时值240）"""
+    pitch_list = []
+    beat_list = []
+    remaining = MELODY_LENGTH
+    
+    while remaining > 0:
+        available_beats = [b for b in VALID_BEATS if b <= remaining]
+        if not available_beats:
+            if remaining >= BEAT_UNIT:
+                beat = remaining
+            else:
+                break
+        else:
+            beat = random.choice(available_beats)
+        
+        pitch = random.randint(PITCH_MIN, PITCH_MAX)
+        
+        pitch_list.append(pitch)
+        beat_list.append(beat)
+        remaining -= beat
+    
+    return creator.Melody(pitch_list, beat_list)
 toolbox.register("individual",Get_Melody)
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
@@ -23,7 +50,7 @@ def evaluate_melody(melody):
 
 #-----Crossover and Mutation_____
 from Crossover import GetChild
-from zcs import melody_mutation  # 使用 zcs 模块的变异操作
+from Mutations import melody_mutation
 
 
 # --- 6. 注册所有操作到工具箱 ---
