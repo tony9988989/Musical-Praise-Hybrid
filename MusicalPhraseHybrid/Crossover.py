@@ -44,30 +44,56 @@ def one_point_crossover(parent1_pitch, parent1_beat, parent2_pitch, parent2_beat
     for k in range(1, length):
         beat_sum1 = cum1[k] + (cum2[-1]-cum2[k])
         beat_sum2 = cum2[k] + (cum1[-1]-cum1[k])
-        if 236 <= beat_sum1 <= 240 and 236 <= beat_sum2 <= 240:
-            legal_points.append(k)
+        # 保证总和接近 240 且拼接处音高差 <= 12 半音
+        if (236 <= beat_sum1 <= 240 and 236 <= beat_sum2 <= 240):
+            if abs(parent1_pitch[k-1] - parent2_pitch[k]) <= 12 and abs(parent2_pitch[k-1] - parent1_pitch[k]) <= 12:
+                legal_points.append(k)
     if not legal_points:
+        # 如果没有合法点，直接返回父母，不做 crossover
         return parent1_pitch, parent1_beat, parent2_pitch, parent2_beat
     else:
         k = random.choice(legal_points)
+    # 拼接 pitch 和 beat
     c1_pitch = parent1_pitch[:k] + parent2_pitch[k:]
     c1_beat  = parent1_beat[:k] + parent2_beat[k:]
     c2_pitch = parent2_pitch[:k] + parent1_pitch[k:]
     c2_beat  = parent2_beat[:k] + parent1_beat[k:]
+    # 补齐 beat 总和到 240
     c1_beat[-1] += 240 - sum(c1_beat)
     c2_beat[-1] += 240 - sum(c2_beat)
     return c1_pitch, c1_beat, c2_pitch, c2_beat
 
+# ----------------- 确定 crossover 次数 -----------------
+def get_number_of_crossovers(p1=0.8, max_crossovers=5):
+    """
+    p1: 生成 1 次 crossover 的概率
+    max_crossovers: 最大允许 crossover 次数
+    返回值: 整数 >= 1
+    """
+    if random.random() < p1:
+        return 1
+    else:
+        # 2~max_crossovers 之间随机选择
+        return random.randint(2, max_crossovers)
+
+# 使用示例
+number_of_crossovers = get_number_of_crossovers()
+
 # ----------------- 主函数 -----------------
 def GetChild(parent1: Melody, parent2: Melody):
     # 1. 平移父母到 C 大调
-    p1_pitch_c = shift_pitch_to_key(parent1.pitch, parent1.key, "C")
-    p2_pitch_c = shift_pitch_to_key(parent2.pitch, parent2.key, "C")
+    c1_pitch = shift_pitch_to_key(parent1.pitch, parent1.key, "C")
+    c2_pitch = shift_pitch_to_key(parent2.pitch, parent2.key, "C")
+    c1_beat = parent1.beat[:]
+    c2_beat = parent2.beat[:]
     
-    # 2. 单点 crossover
-    c1_pitch, c1_beat, c2_pitch, c2_beat = one_point_crossover(
-        p1_pitch_c, parent1.beat, p2_pitch_c, parent2.beat
-    )
+    
+    # 2. 可以多次杂交（循环调用 crossover）
+    number_of_crossovers = get_number_of_crossovers()
+    for _ in range(number_of_crossovers):
+        c1_pitch, c1_beat, c2_pitch, c2_beat = one_point_crossover(
+            c1_pitch, c1_beat, c2_pitch, c2_beat
+        )
     
     # 3. 平移回父母调式
     c1_pitch = shift_pitch_to_key(c1_pitch, "C", parent1.key)
