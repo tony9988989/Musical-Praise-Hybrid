@@ -27,7 +27,7 @@ except ImportError:
         "#A": [10, 0, 2, 3, 5, 7, 9],
         "B": [11, 1, 3, 4, 6, 8, 10]
     }
-    MELODY_LENGTH = 240
+    MELODY_LENGTH = 192
 
 # 音域范围：F3 ~ G5
 # 在12音制下（每个八度12个音）：
@@ -108,6 +108,9 @@ def generate_melody(key=None, use_scale=True):
         
         # 随机选择音高（在调性音阶内）
         pitch = random.choice(valid_pitches)
+        # 以1/4的概率变成空拍
+        if random.random() < 0.25:
+            pitch = None  # 空拍
         
         pitch_list.append(pitch)
         beat_list.append(beat)
