@@ -156,10 +156,10 @@ def load_config_and_melodies(filepath):
                 pitch_list, beat_list = parse_melody_string(fragment)
                 if pitch_list and beat_list:
                     # 验证总时值
-                    if sum(beat_list) == 240:
+                    if sum(beat_list) == 192:
                         melodies.append((pitch_list, beat_list))
                     else:
-                        print(f"警告：旋律片段时值总和为 {sum(beat_list)}，应为 240，已跳过")
+                        print(f"警告：旋律片段时值总和为 {sum(beat_list)}，应为 192，已跳过")
             except Exception as e:
                 print(f"警告：解析片段失败 - {e}")
     

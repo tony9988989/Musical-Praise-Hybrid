@@ -16,7 +16,7 @@ KEY_SCALE_MAP = {
     "#A": [10, 0, 2, 3, 5, 7, 9],
     "B": [11, 1, 3, 4, 6, 8, 10]
 }
-MELODY_LENGTH=240
+MELODY_LENGTH=192
 for i in range(1,8):
     valid_notes+=[str(Notes[j]+str(i)) for j in range(12)]
 valid_notes.append("Pause")
@@ -26,9 +26,9 @@ for i in range(len(valid_notes)):
 
 class Melody:
     def __init__(self,key,pitch,beat):
-        assert sum(beat)==240,"invalid melody"#Quarter note=12
+        assert sum(beat)==MELODY_LENGTH,"invalid melody"#Quarter note=12
         assert len(pitch)==len(beat),"invalid melody"
-        assert max(pitch)<len(valid_notes) and min(pitch)>=0,"invalid melody"
+        #assert max(pitch)<len(valid_notes) and min(pitch)>=0,"invalid melody" #这里pitch中允许None表示空拍，要检查的话要改一改
         assert key in Notes,"invalid melody"
         self.pitch=pitch
         self.beat=beat
@@ -36,7 +36,10 @@ class Melody:
     def __repr__(self):
         c="{\n"
         for i in range(len(self.pitch)):
-            c+=valid_notes[self.pitch[i]]+" "+str(self.beat[i])+"\n"
+            if self.pitch[i] is None:
+                c+="Pause "+str(self.beat[i])+"\n"
+            else:
+                c+=valid_notes[self.pitch[i]]+" "+str(self.beat[i])+"\n"
         c+="}"
         return c
 
